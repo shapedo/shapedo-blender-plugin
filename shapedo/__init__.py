@@ -6,7 +6,7 @@ bl_info = {
     "category" : "Tools",
     "location" : "3D View >> Tools",
     "wiki_url" : "https://github.com/shapedo/shapedo-blender-plugin",
-    "tracker_url" : "https://github.com/shapedo/shapedo-blender-plugin/blob/master/shapedo/shapedo-blender-plugin/__ini__.py",
+    "tracker_url" : "https://github.com/shapedo/shapedo-blender-plugin/issues",
     "description" : "A blender addon to work on projects on ShapeDo from within blender"
 }
 

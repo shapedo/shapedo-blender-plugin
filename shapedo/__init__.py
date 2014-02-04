@@ -240,10 +240,26 @@ class SettingsDialogOperator(bpy.types.Operator):
         setProjects()
         setFiles(context)
         return {'FINISHED'}
+    
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
  
+        row = layout.row()
+        row.alignment = 'EXPAND'
+        
+        split = row.split(percentage=0.75)
+        col = split.column() 
+        col.prop(self , "my_string")
+        col = split.column()
+
+        props = col.operator("wm.url_open", text="Get API key", emboss=False, icon='WORLD_DATA')
+        props.url = "http://shapedo.com/user"
+        return
+    
     def invoke(self, context, event):
         self.my_string = settings["API"]
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self,width=450, height=300)
 
 bpy.utils.register_module(__name__)
 

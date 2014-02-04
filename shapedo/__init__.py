@@ -25,8 +25,8 @@ BLEND_SAVE_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 "shapedo.blend")
 print(APT_TOKEN_PATH)
 settings = {"API" : "",
-	    "ProjectEnum" : 1,
-	    "FilesEnum" : 1}
+	    "ProjectEnum" : [],
+	    "FilesEnum" : []}
 
 #Holds the lists for the Enums
 projects = []
@@ -97,8 +97,13 @@ def setProjects():
   """
   projects2 = []
   a = ShapDoAPI(settings["API"])
-  print(a.getProjectsList().keys())
-  projects = a.getProjectsList()["projects"]
+  try:
+      projects = a.getProjectsList()["projects"]
+  except urllib.error.HTTPError:
+      bpy.ops.error.message('INVOKE_DEFAULT', 
+                MessageType = "Error",
+                message = "Could not connect to server, check your API key")
+      return []
   for project in projects:
     projects2.append((project["name"], project["title"], project["url"]))
   bpy.types.Scene.ProjectEnum = EnumProperty(
@@ -114,7 +119,10 @@ def setFiles(context):
   a = ShapDoAPI(settings["API"])
   print("project:")
   print(str(context.scene.ProjectEnum))
-  filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
+  try:
+      filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
+  except:
+      return
   for key in filesDict:
     files2.append((key, key, filesDict[key]))
   bpy.types.Scene.FilesEnum = EnumProperty(
@@ -260,6 +268,31 @@ class SettingsDialogOperator(bpy.types.Operator):
     def invoke(self, context, event):
         self.my_string = settings["API"]
         return context.window_manager.invoke_props_dialog(self,width=450, height=300)
+
+class MessageOperator(bpy.types.Operator):
+    """
+    The error message operator. When invoked, pops up a dialog 
+    window with the given message.
+    """
+    bl_idname = "error.message"
+    bl_label = "Message"
+    MessageType = StringProperty()
+    message = StringProperty()
+ 
+    def execute(self, context):
+        self.report({'INFO'}, self.message)
+        print(self.message)
+        return {'FINISHED'}
+ 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_popup(self, width=600, height=200)
+ 
+    def draw(self, context):
+        self.layout.label(self.MessageType)
+        row = self.layout.row()
+        row.alignment = 'EXPAND'
+        row.prop(self, "message")
+        return
 
 bpy.utils.register_module(__name__)
 

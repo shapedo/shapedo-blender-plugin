@@ -234,7 +234,7 @@ class SettingsDialogOperator(bpy.types.Operator):
         
         self.report({'INFO'}, str(settings))
         
-        settings["API"] = "%s" % (self.my_string)
+        settings["API"] = "%s" % (self.my_string.strip())
         
         save_settings()
         setProjects()

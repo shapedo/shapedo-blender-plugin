@@ -4,19 +4,19 @@ bl_info = {
     "version" : (0, 0, 2),
     "blender" : (2, 68, 0),
     "category" : "Tools",
-    "location" : "3D View >> Tools",
+    "location" : "3D View > Tools",
     "wiki_url" : "https://github.com/shapedo/shapedo-blender-plugin",
     "tracker_url" : "https://github.com/shapedo/shapedo-blender-plugin/issues",
-    "description" : "A blender addon to work on projects on ShapeDo from within blender"
-}
+    "description" : "An addon to work on projects on ShapeDo from within Blender"}
 
 import bpy
-from bpy.props import *
-import os.path
 import json
-from bpy.app.handlers import persistent
+import os.path
 import urllib.request
+from bpy.props import *
+from bpy.app.handlers import persistent
 from shapedo.shapedoSDK import ShapDoAPI
+
 
 APT_TOKEN_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 "shhapedo.txt")
@@ -24,11 +24,13 @@ APT_TOKEN_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 BLEND_SAVE_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 "shapedo.blend")
 print(APT_TOKEN_PATH)
-settings = {"API" : "",
-	    "ProjectEnum" : [],
-	    "FilesEnum" : [],
-	    "CurrentProject" : "",
-	    "CurrentFile" : ""}
+
+settings = {
+    "API" : "",
+    "ProjectEnum" : [],
+    "FilesEnum" : [],
+    "CurrentProject" : "",
+    "CurrentFile" : ""}
 
 #Holds the lists for the Enums
 projects = []
@@ -37,22 +39,24 @@ files = []
 #Are we working on stl, or blend file?
 working_on_stl = False
 
+
 def save_settings():
-    """ Save our settings in to an external file
-    """
+    """ Save our settings in to an external file"""
+
     path = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets")
     if not os.path.exists(path):
         os.makedirs(path)
-        
+
     file = open(APT_TOKEN_PATH, 'w+')
     file.write(json.dumps(settings))
     
     file.close()
 
+
 @persistent
 def load_settings():
-    """ Load our settings in to an external file
-    """
+    """ Load our settings in to an external file"""
+
     global settings
     try:
         file = open(APT_TOKEN_PATH, 'r')
@@ -64,14 +68,14 @@ def load_settings():
         return
     file.close()
     print(settings)
-    
+
+
 def setWorkingProject(context):
-    """
-    Set the dropbox to the current project and file we are working on
-    """
+    """Set the dropbox to the current project and file we are working on"""
+    
     context.scene.ProjectEnum = settings["CurrentProject"]
     context.scene.FilesEnum = settings["CurrentFile"]
-    return
+
 
 def projectUpdated(self, context):
     """ Runs when projects enum is update
@@ -81,7 +85,7 @@ def projectUpdated(self, context):
     setFiles(context)
     settings["ProjectEnum"] = str(context.scene.ProjectEnum)
     save_settings()
-    return
+
 
 def filesUpdated(self, context):
     """ Runs when files enum is update
@@ -90,89 +94,90 @@ def filesUpdated(self, context):
     """
     settings["FilesEnum"] = str(context.scene.FilesEnum)
     save_settings()
-    return
+
 
 #enums for project and files path enum
 bpy.types.Scene.ProjectEnum = EnumProperty(
-    items = projects,
-    name = "Project",update=projectUpdated)
+    items=projects,
+    name="Project",
+    update=projectUpdated)
 
 bpy.types.Scene.FilesEnum = EnumProperty(
-    items = files,
-    name = "Files",
+    items=files,
+    name="Files",
     update=filesUpdated)
 
+
 def setProjects():
-  """ Load a new set of Projects in to the enum, runs each time we need to update the list
-  """
-  projects2 = []
-  a = ShapDoAPI(settings["API"])
-  try:
-      projects = a.getProjectsList()["projects"]
-  except urllib.error.HTTPError:
-      bpy.ops.error.message('INVOKE_DEFAULT', 
-                MessageType = "Error",
-                message = "Could not connect to server, check your API key")
-      return []
-  for project in projects:
-    projects2.append((project["name"], project["title"], project["url"]))
-  bpy.types.Scene.ProjectEnum = EnumProperty(
-        items = projects2,
-        name = "Project",
+    """ Load a new set of Projects in to the enum, runs each time we need to update the list"""
+  
+    projects2 = []
+    a = ShapDoAPI(settings["API"])
+    try:
+        projects = a.getProjectsList()["projects"]
+    except urllib.error.HTTPError:
+        bpy.ops.error.message('INVOKE_DEFAULT', 
+            MessageType="Error",
+            message="Could not connect to server, check your API key")
+        return []
+    for project in projects:
+        projects2.append((project["name"], project["title"], project["url"]))
+        
+    bpy.types.Scene.ProjectEnum = EnumProperty(
+        items=projects2,
+        name="Project",
         update=projectUpdated)
-  return
+
 
 def setFiles(context):
-  """ Load a new set of files paths from a project in to the enum, runs each time we need to update the list
-  """
-  files2 = []
-  a = ShapDoAPI(settings["API"])
-  print("project:")
-  print(str(context.scene.ProjectEnum))
-  try:
-      filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
-  except:
-      return
-  for key in filesDict:
-    files2.append((key, key, filesDict[key]))
-  bpy.types.Scene.FilesEnum = EnumProperty(
+    """ Load a new set of files paths from a project in to the enum, runs each time we need to update the list"""
+  
+    files2 = []
+    a = ShapDoAPI(settings["API"])
+    print("project:")
+    print(str(context.scene.ProjectEnum))
+    try:
+        filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
+    except:
+        return
+    for key in filesDict:
+        files2.append((key, key, filesDict[key]))
+        
+    bpy.types.Scene.FilesEnum = EnumProperty(
         items = files2,
         name = "Files",
         update=filesUpdated)
-  return
+
 
 class ToolPropsPanel(bpy.types.Panel):
-    """ The main toolset of the plugin 
-    """
+    """ The main toolset of the plugin"""
     bl_label = "ShapeDo sync"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOL_PROPS"
+    
     bpy.types.Scene.urlPath = StringProperty(name="urlPath")
 
     def invoke(self, context, event):
-            return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         global itemsPath
         self.layout.prop(context.scene, 'ProjectEnum')
         self.layout.prop(context.scene, 'FilesEnum')
-        self.layout.operator("shapedo.download", text='Download')
-        self.layout.operator("shapedo.upload", text='Upload')
-        
-        self.layout.operator("settings.dialog", text='Settings')
-        return
+        self.layout.operator("shapedo.download", text="Download")
+        self.layout.operator("shapedo.upload", text="Upload")
+        self.layout.operator("settings.dialog", text="Settings")
        
  
 class OBJECT_OT_SettingsButton(bpy.types.Operator):
-    """ Open the settings dialog
-    """
+    """ Open the settings dialog"""
     bl_idname = "settings.dialog"
     bl_label = "Settings Dialog"
     
     def execute(self, context):
         # Invoke the dialog
         bpy.ops.object.settings_dialog_operator('INVOKE_DEFAULT')
-        return{'FINISHED'}    
+        return {'FINISHED'}    
     
 
 class OBJECT_OT_PullButton(bpy.types.Operator):
@@ -211,17 +216,18 @@ class OBJECT_OT_PullButton(bpy.types.Operator):
         setWorkingProject(context)
         return{'FINISHED'}    
 
+
 class OBJECT_OT_PushButton(bpy.types.Operator):
     bl_idname = "shapedo.upload"
     bl_label = "Push to Shapedo"
  
     def execute(self, context):
         bpy.ops.object.push_dialog_operator('INVOKE_DEFAULT')
-        return{'FINISHED'}
+        return {'FINISHED'}
+
 
 class PushDialogOperator(bpy.types.Operator):
-    """ Push dialog
-    """
+    """ Push dialog"""
     bl_idname = "object.push_dialog_operator"
     bl_label = "Push file to ShapeDo"
     commit_message = StringProperty(name="Change description")
@@ -244,9 +250,9 @@ class PushDialogOperator(bpy.types.Operator):
         self.my_string = settings["API"]
         return context.window_manager.invoke_props_dialog(self)
  
+ 
 class SettingsDialogOperator(bpy.types.Operator):
-    """ Settings dialog
-    """
+    """Settings dialog"""
     bl_idname = "object.settings_dialog_operator"
     bl_label = "ShapeDo connection settings"
  
@@ -278,11 +284,11 @@ class SettingsDialogOperator(bpy.types.Operator):
 
         props = col.operator("wm.url_open", text="Get API key", emboss=False, icon='WORLD_DATA')
         props.url = "http://shapedo.com/user"
-        return
     
     def invoke(self, context, event):
         self.my_string = settings["API"]
-        return context.window_manager.invoke_props_dialog(self,width=450, height=300)
+        return context.window_manager.invoke_props_dialog(self, width=450, height=300)
+
 
 class MessageOperator(bpy.types.Operator):
     """
@@ -307,13 +313,12 @@ class MessageOperator(bpy.types.Operator):
         row = self.layout.row()
         row.alignment = 'EXPAND'
         row.prop(self, "message")
-        return
 
-bpy.utils.register_module(__name__)
 
 def register():
-    """ Plugin regestration, they all have to do that """
+    """Plugin registration, they all have to do that"""
     print("Loading ShapeDo addon")
+    bpy.utils.register_module(__name__)
     load_settings()
     try:
         setProjects()
@@ -325,3 +330,8 @@ def register():
     
 def unregister():
     print("Unloading ShapeDo addon")
+    bpy.utils.unregister_module(__name__)
+
+if __name__ == "__main__":
+    register()
+    

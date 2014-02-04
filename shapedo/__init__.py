@@ -26,7 +26,9 @@ BLEND_SAVE_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 print(APT_TOKEN_PATH)
 settings = {"API" : "",
 	    "ProjectEnum" : [],
-	    "FilesEnum" : []}
+	    "FilesEnum" : [],
+	    "CurrentProject" : "",
+	    "CurrentFile" : ""}
 
 #Holds the lists for the Enums
 projects = []
@@ -62,6 +64,14 @@ def load_settings():
         return
     file.close()
     print(settings)
+    
+def setWorkingProject(context):
+    """
+    Set the dropbox to the current project and file we are working on
+    """
+    context.scene.ProjectEnum = settings["CurrentProject"]
+    context.scene.FilesEnum = settings["CurrentFile"]
+    return
 
 def projectUpdated(self, context):
     """ Runs when projects enum is update
@@ -172,9 +182,13 @@ class OBJECT_OT_PullButton(bpy.types.Operator):
     def execute(self, context):
         global working_on_stl
         self.report({'INFO'}, "Downloading from ShapeDo")
+
+        settings["CurrentProject"] = context.scene.ProjectEnum
+        settings["CurrentFile"] = context.scene.FilesEnum
+        save_settings()
         
         a = ShapDoAPI(settings["API"])
-        a.downloadProject(context.scene.ProjectEnum, context.scene.FilesEnum,BLEND_SAVE_PATH)
+        a.downloadProject(settings["CurrentProject"], settings["CurrentFile"], BLEND_SAVE_PATH)
         
         try:
             bpy.ops.wm.open_mainfile(filepath=BLEND_SAVE_PATH)
@@ -193,7 +207,8 @@ class OBJECT_OT_PullButton(bpy.types.Operator):
                 
             bpy.ops.import_mesh.stl(filepath=BLEND_SAVE_PATH)
             working_on_stl = True
-            
+        
+        setWorkingProject(context)
         return{'FINISHED'}    
 
 class OBJECT_OT_PushButton(bpy.types.Operator):
@@ -302,7 +317,9 @@ def register():
     load_settings()
     try:
         setProjects()
-        setFiles(bpy.context)
+        ##TODO:  make this actually load the most recent file on startup
+        setWorkingProject(bpy.context)
+        setFiles(bpy.context)   
     except:
         pass
     

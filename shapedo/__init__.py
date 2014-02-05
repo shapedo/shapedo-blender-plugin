@@ -282,7 +282,7 @@ class SettingsDialogOperator(bpy.types.Operator):
         col.prop(self , "my_string")
         col = split.column()
 
-        props = col.operator("wm.url_open", text="Get API key", emboss=False, icon='WORLD_DATA')
+        props = col.operator("wm.url_open", text="Get API key", icon='WORLD_DATA')
         props.url = "http://shapedo.com/user"
     
     def invoke(self, context, event):

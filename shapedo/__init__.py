@@ -39,7 +39,6 @@ files = []
 #Are we working on stl, or blend file?
 working_on_stl = False
 
-
 def save_settings():
     """ Save our settings in to an external file"""
 
@@ -162,11 +161,15 @@ class ToolPropsPanel(bpy.types.Panel):
 
     def draw(self, context):
         global itemsPath
-        self.layout.prop(context.scene, 'ProjectEnum')
-        self.layout.prop(context.scene, 'FilesEnum')
-        self.layout.operator("shapedo.download", text="Download")
-        self.layout.operator("shapedo.upload", text="Upload")
-        self.layout.operator("settings.dialog", text="Settings")
+        controlCols = self.layout.column()
+        controlCols.prop(context.scene, 'ProjectEnum')
+        controlCols.prop(context.scene, 'FilesEnum')
+        controlCols.operator("shapedo.download", text="Download")
+        controlCols.operator("shapedo.upload", text="Upload")
+        
+        #controlCols.enabled = False
+        col = self.layout.column()
+        col.operator("settings.dialog", text="Settings")
        
  
 class OBJECT_OT_SettingsButton(bpy.types.Operator):

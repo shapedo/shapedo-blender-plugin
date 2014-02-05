@@ -19,7 +19,7 @@ from shapedo.shapedoSDK import ShapDoAPI
 
 
 APT_TOKEN_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
-"shhapedo.txt")
+"shapedo.txt")
 
 BLEND_SAVE_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 "shapedo.blend")

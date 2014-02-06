@@ -17,6 +17,10 @@ from bpy.props import *
 from bpy.app.handlers import persistent
 from shapedo.shapedoSDK import ShapDoAPI
 
+#constant
+ADD_NEW_FILE = "<Add new File>"
+ACCEPTED_FILETYPES = ["blend","stl"]
+
 
 APT_TOKEN_PATH = os.path.join(bpy.utils.user_resource('SCRIPTS'), "presets",
 "shapedo.txt")
@@ -141,12 +145,19 @@ def setFiles(context):
     except:
         return
     for key in filesDict:
-        files2.append((key, key, filesDict[key]))
-        
+        if key.split(".")[-1] in ACCEPTED_FILETYPES:
+            files2.append((key, key, filesDict[key]))
+    
+    #Append 'add new file' option
+    files2.append((ADD_NEW_FILE, ADD_NEW_FILE, ADD_NEW_FILE))
+    
     bpy.types.Scene.FilesEnum = EnumProperty(
         items = files2,
         name = "Files",
         update=filesUpdated)
+    
+    #Set to first option
+    context.scene.FilesEnum = files2[0][1]
 
 
 class ToolPropsPanel(bpy.types.Panel):
@@ -231,24 +242,47 @@ class PushDialogOperator(bpy.types.Operator):
     bl_idname = "object.push_dialog_operator"
     bl_label = "Push file to ShapeDo"
     commit_message = StringProperty(name="Change description")
- 
+    new_file_path = StringProperty(name="New file name")
+
+    def draw(self, context):
+        layout = self.layout
+        layout.alignment = 'EXPAND'
+        layout.prop(self , "commit_message")
+        
+        row = layout.row()
+        row.alignment = 'EXPAND'
+        split = row.split(percentage=0.85)
+        
+        if context.scene.FilesEnum == ADD_NEW_FILE:
+            split.prop(self , "new_file_path")
+            split.label(".blend")
+            
     def execute(self, context):
         
         self.report({'INFO'}, self.commit_message)
         
-        if not working_on_stl:
-            bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-        else:
-            bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
-        print(self.commit_message)
         a = ShapDoAPI(settings["API"])
+        
+        print("weeeeee")
+        print(context.scene.FilesEnum)
+        print(context.scene.FilesEnum == ADD_NEW_FILE)
+        if context.scene.FilesEnum == ADD_NEW_FILE:
+            #uploading new file
+            bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+            a.uploadFile(context.scene.ProjectEnum, self.new_file_path + ".blend", self.commit_message, BLEND_SAVE_PATH)
+        else:
+            if not working_on_stl:
+                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+            else:
+                bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
+            print(self.commit_message)
+            
         a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
-
         return {'FINISHED'}
  
     def invoke(self, context, event):
         self.my_string = settings["API"]
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self, width=450, height=300)
  
  
 class SettingsDialogOperator(bpy.types.Operator):

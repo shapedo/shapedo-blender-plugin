@@ -114,19 +114,21 @@ bpy.types.Scene.FilesEnum = EnumProperty(
 
 def setProjects():
     """ Load a new set of Projects in to the enum, runs each time we need to update the list"""
-  
+    global projects
     projects2 = []
     a = ShapDoAPI(settings["API"])
     try:
-        projects = a.getProjectsList()["projects"]
+        filesDict = a.getProjectsList()["projects"]
     except urllib.error.HTTPError:
         bpy.ops.error.message('INVOKE_DEFAULT', 
             MessageType="Error",
             message="Could not connect to server, check your API key")
         return []
-    for project in projects:
+    for project in filesDict:
         projects2.append((project["name"], project["title"], project["url"]))
-        
+    
+    projects = filesDict.keys()
+    
     bpy.types.Scene.ProjectEnum = EnumProperty(
         items=projects2,
         name="Project",
@@ -135,8 +137,10 @@ def setProjects():
 
 def setFiles(context):
     """ Load a new set of files paths from a project in to the enum, runs each time we need to update the list"""
-  
+    global files
+    
     files2 = []
+    files = []
     a = ShapDoAPI(settings["API"])
     print("project:")
     print(str(context.scene.ProjectEnum))
@@ -150,6 +154,8 @@ def setFiles(context):
     
     #Append 'add new file' option
     files2.append((ADD_NEW_FILE, ADD_NEW_FILE, ADD_NEW_FILE))
+    
+    files = filesDict.keys()
     
     bpy.types.Scene.FilesEnum = EnumProperty(
         items = files2,
@@ -259,21 +265,29 @@ class PushDialogOperator(bpy.types.Operator):
             
     def execute(self, context):
         
+        def uploadBlend():
+            a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
+        
         self.report({'INFO'}, self.commit_message)
         
         a = ShapDoAPI(settings["API"])
         
-        print("weeeeee")
-        print(context.scene.FilesEnum)
         print(context.scene.FilesEnum == ADD_NEW_FILE)
         if context.scene.FilesEnum == ADD_NEW_FILE:
-            #uploading new file
-            bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
             newFileName = self.new_file_path + ".blend"
-            a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
             
-            setFiles(context)
-            context.scene.FilesEnum = newFileName
+            if newFileName not in files:
+                #uploading new file
+                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+                
+                setFiles(context)
+                context.scene.FilesEnum = newFileName
+                uploadBlend()
+            else:
+                #Error file already exists
+                bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
+                                      message="File already exists in project, please provide another.")
             
         else:
             if not working_on_stl:
@@ -282,7 +296,7 @@ class PushDialogOperator(bpy.types.Operator):
                 bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
             print(self.commit_message)
             
-        a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
+            uploadBlend()
         return {'FINISHED'}
  
     def invoke(self, context, event):

@@ -16,8 +16,10 @@ import urllib.request
 from bpy.props import *
 from bpy.app.handlers import persistent
 from shapedo.shapedoSDK import ShapDoAPI
+from shapedo.EnumData import CATEGORIES, LICENSES
 
 #constant
+CREATE_NEW_PROJECT = "<Add new project>"
 ADD_NEW_FILE = "<Add new File>"
 ACCEPTED_FILETYPES = ["blend","stl"]
 
@@ -86,9 +88,12 @@ def projectUpdated(self, context):
     :param: self
     :param context: The context, holds the scene etc
     """
-    setFiles(context)
-    settings["ProjectEnum"] = str(context.scene.ProjectEnum)
-    save_settings()
+    if str(context.scene.ProjectEnum) == CREATE_NEW_PROJECT:
+        setFiles(context,True)
+    else:
+        setFiles(context)
+        settings["ProjectEnum"] = str(context.scene.ProjectEnum)
+        save_settings()
 
 
 def filesUpdated(self, context):
@@ -116,18 +121,21 @@ def setProjects():
     """ Load a new set of Projects in to the enum, runs each time we need to update the list"""
     global projects
     projects2 = []
+    projects = []
     a = ShapDoAPI(settings["API"])
     try:
-        filesDict = a.getProjectsList()["projects"]
+        projectsDict = a.getProjectsList()["projects"]
     except urllib.error.HTTPError:
         bpy.ops.error.message('INVOKE_DEFAULT', 
             MessageType="Error",
             message="Could not connect to server, check your API key")
         return []
-    for project in filesDict:
+    for project in projectsDict:
         projects2.append((project["name"], project["title"], project["url"]))
+        projects.append(project["name"])
     
-    projects = filesDict.keys()
+    #Append 'add new file' option
+    projects2.append((CREATE_NEW_PROJECT, CREATE_NEW_PROJECT, CREATE_NEW_PROJECT))
     
     bpy.types.Scene.ProjectEnum = EnumProperty(
         items=projects2,
@@ -135,27 +143,37 @@ def setProjects():
         update=projectUpdated)
 
 
-def setFiles(context):
-    """ Load a new set of files paths from a project in to the enum, runs each time we need to update the list"""
+def setFiles(context,dummy=False):
+    """ Load a new set of files paths from a project in to the enum, runs each time we need to update the list
+    
+    :param context: Scene context
+    :param dummy: Used if we are loading a new project, dummy value will be generated
+    """
     global files
     
     files2 = []
     files = []
-    a = ShapDoAPI(settings["API"])
-    print("project:")
-    print(str(context.scene.ProjectEnum))
-    try:
-        filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
-    except:
-        return
-    for key in filesDict:
-        if key.split(".")[-1] in ACCEPTED_FILETYPES:
-            files2.append((key, key, filesDict[key]))
     
-    #Append 'add new file' option
-    files2.append((ADD_NEW_FILE, ADD_NEW_FILE, ADD_NEW_FILE))
+    if dummy:
+        files2.append((ADD_NEW_FILE, ADD_NEW_FILE, ADD_NEW_FILE))
+        
+    else:
+        a = ShapDoAPI(settings["API"])
+        print("project:")
+        print(str(context.scene.ProjectEnum))
+        try:
+            filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
+        except:
+            return
+        for key in filesDict:
+            if key.split(".")[-1] in ACCEPTED_FILETYPES:
+                files2.append((key, key, filesDict[key]))
+        
+        #Append 'add new file' option
+        files2.append((ADD_NEW_FILE, ADD_NEW_FILE, ADD_NEW_FILE))
+        
+        files = filesDict.keys()
     
-    files = filesDict.keys()
     
     bpy.types.Scene.FilesEnum = EnumProperty(
         items = files2,
@@ -248,20 +266,43 @@ class PushDialogOperator(bpy.types.Operator):
     bl_idname = "object.push_dialog_operator"
     bl_label = "Push file to ShapeDo"
     commit_message = StringProperty(name="Change description")
+    
+    new_project_name = StringProperty(name="New project name")
+    new_project_title = StringProperty(name="Project title")
+    new_project_description = StringProperty(name="Project description")
+    new_project_category = EnumProperty(items=CATEGORIES, name="Category")
+    new_project_license = EnumProperty(items=LICENSES, name="License")
+    
     new_file_path = StringProperty(name="New file name")
 
     def draw(self, context):
         layout = self.layout
         layout.alignment = 'EXPAND'
-        layout.prop(self , "commit_message")
+        
+        if context.scene.ProjectEnum != CREATE_NEW_PROJECT:
+            layout.prop(self , "commit_message")
         
         row = layout.row()
         row.alignment = 'EXPAND'
-        split = row.split(percentage=0.85)
+        
+        if context.scene.ProjectEnum == CREATE_NEW_PROJECT:
+            row.prop(self , "new_project_name")
+            row = layout.row()
+            row.prop(self , "new_project_title")
+            row = layout.row()
+            row.prop(self , "new_project_description")
+            row = layout.row()
+            row.prop(self , "new_project_category")
+            row = layout.row()
+            row.prop(self , "new_project_license")
         
         if context.scene.FilesEnum == ADD_NEW_FILE:
+            row = layout.row()
+            row.alignment = 'EXPAND'
+            split = row.split(percentage=0.85)
             split.prop(self , "new_file_path")
             split.label(".blend")
+            
             
     def execute(self, context):
         

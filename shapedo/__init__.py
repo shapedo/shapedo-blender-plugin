@@ -265,7 +265,7 @@ class PushDialogOperator(bpy.types.Operator):
             
     def execute(self, context):
         
-        def uploadBlend():
+        def upload():
             a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
         
         self.report({'INFO'}, self.commit_message)
@@ -283,7 +283,7 @@ class PushDialogOperator(bpy.types.Operator):
                 
                 setFiles(context)
                 context.scene.FilesEnum = newFileName
-                uploadBlend()
+                upload()
             else:
                 #Error file already exists
                 bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
@@ -296,7 +296,7 @@ class PushDialogOperator(bpy.types.Operator):
                 bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
             print(self.commit_message)
             
-            uploadBlend()
+            upload()
         return {'FINISHED'}
  
     def invoke(self, context, event):

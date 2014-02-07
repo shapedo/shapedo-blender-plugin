@@ -269,7 +269,12 @@ class PushDialogOperator(bpy.types.Operator):
         if context.scene.FilesEnum == ADD_NEW_FILE:
             #uploading new file
             bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-            a.uploadFile(context.scene.ProjectEnum, self.new_file_path + ".blend", self.commit_message, BLEND_SAVE_PATH)
+            newFileName = self.new_file_path + ".blend"
+            a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+            
+            setFiles(context)
+            context.scene.FilesEnum = newFileName
+            
         else:
             if not working_on_stl:
                 bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)

@@ -9,7 +9,7 @@ import base64
 class ShapDoAPI():
     """ShapeDo API handler class"""
     
-    def __init__(self, token, host="http://shapedo.com/api/v1/"):
+    def __init__(self, token, host="https://shapedo.com/api/v1/"):
         """
         Constructor
         

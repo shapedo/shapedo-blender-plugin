@@ -358,7 +358,6 @@ class PushDialogOperator(bpy.types.Operator):
                     
                     setFiles(context)
                     context.scene.FilesEnum = newFileName
-                    upload()
                 else:
                     #Error file already exists
                     bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 

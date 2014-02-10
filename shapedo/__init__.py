@@ -319,9 +319,24 @@ class PushDialogOperator(bpy.types.Operator):
             
             self.report({'INFO'}, "Creating new project")
             bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-            print(a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, self.new_file_path.split(".blend")[0] + ".blend", self.new_project_description,
+            newFilePath = self.new_file_path.split(".blend")[0] + ".blend"
+            result = a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, newFilePath, self.new_project_description,
                               "", self.new_project_category, self.new_project_license, 
-                               self.new_project_tags, self.new_project_private))
+                               self.new_project_tags, self.new_project_private)
+            
+            
+            #Make enums include new project, and set it to the current project
+            newProjectName = result['url'].split("/")[-1]
+            
+            settings["CurrentProject"] = newProjectName
+            settings["CurrentFile"] = newFilePath
+            save_settings()
+            
+            setProjects()
+            setFiles(context)
+            
+            context.scene.ProjectEnum = newProjectName
+            context.scene.FilesEnum = newFilePath
         
         
         #uploading to existing file or new file

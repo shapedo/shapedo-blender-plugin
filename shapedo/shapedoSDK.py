@@ -71,20 +71,19 @@ class ShapDoAPI():
         )
     
     def createNewProject(self, projectTitle, localPath, remotePath, projectDescription = "", projectInstructions = "", projectCategory = "", projectLicense = "cc-sa", 
-                         projectName = "", projectTags = "", private = False):
+                         projectTags = "", private = False):
         """
         Create a new project
         
-        :param projectTitle: the project title
         :param localPath: the path to the file we are going to upload
         :param remotePath: The path of the file on shapedo
         :param projectDescription: description of the project
         :param projectCategory: Category as listed on ShapeDo API
         :param projectLicense: Licnese from the ones listed on ShapeDo
+        :param projectTitle: the project title
         """
         
         return self._post("create", {
-            "name": projectName.replace(" ","-"),
             "title" : projectTitle,
             "file": base64.encodestring(open(localPath, 'rb').read()).decode(),
             "filename": remotePath,

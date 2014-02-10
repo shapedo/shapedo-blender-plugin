@@ -267,7 +267,6 @@ class PushDialogOperator(bpy.types.Operator):
     bl_label = "Push file to ShapeDo"
     commit_message = StringProperty(name = "Change description")
     
-    new_project_name = StringProperty(name = "New project name*")
     new_project_title = StringProperty(name = "Project title*")
     new_project_description = StringProperty(name = "Project description*")
     new_project_category = EnumProperty(items = CATEGORIES, name = "Category*")
@@ -290,7 +289,6 @@ class PushDialogOperator(bpy.types.Operator):
         row.alignment = 'EXPAND'
         
         if context.scene.ProjectEnum == CREATE_NEW_PROJECT:
-            row.prop(self , "new_project_name")
             row = layout.row()
             row.prop(self , "new_project_title")
             row = layout.row()
@@ -323,7 +321,7 @@ class PushDialogOperator(bpy.types.Operator):
             bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
             print(a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, self.new_file_path.split(".blend")[0] + ".blend", self.new_project_description,
                               "", self.new_project_category, self.new_project_license, 
-                               self.new_project_name, self.new_project_tags, self.new_project_private))
+                               self.new_project_tags, self.new_project_private))
         
         
         #uploading to existing file or new file

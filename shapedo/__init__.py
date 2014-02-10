@@ -265,15 +265,19 @@ class PushDialogOperator(bpy.types.Operator):
     """ Push dialog"""
     bl_idname = "object.push_dialog_operator"
     bl_label = "Push file to ShapeDo"
-    commit_message = StringProperty(name="Change description")
+    commit_message = StringProperty(name = "Change description")
     
-    new_project_name = StringProperty(name="New project name")
-    new_project_title = StringProperty(name="Project title")
-    new_project_description = StringProperty(name="Project description")
-    new_project_category = EnumProperty(items=CATEGORIES, name="Category")
-    new_project_license = EnumProperty(items=LICENSES, name="License")
+    new_project_name = StringProperty(name = "New project name*")
+    new_project_title = StringProperty(name = "Project title*")
+    new_project_description = StringProperty(name = "Project description*")
+    new_project_category = EnumProperty(items = CATEGORIES, name = "Category*")
+    new_project_license = EnumProperty(items = LICENSES, name = "License*")
+    new_project_private = BoolProperty(name = "", description = "True or False?")
+    new_project_tags = StringProperty(name = "Tags (comma seprated):")
     
-    new_file_path = StringProperty(name="New file name")
+
+    
+    new_file_path = StringProperty(name="New file name*")
 
     def draw(self, context):
         layout = self.layout
@@ -295,6 +299,12 @@ class PushDialogOperator(bpy.types.Operator):
             row.prop(self , "new_project_category")
             row = layout.row()
             row.prop(self , "new_project_license")
+            row = layout.row()
+            split = row.split(percentage=0.32)
+            split.label("Private project?")
+            split.prop(self , "new_project_private")
+            row = layout.row()
+            row.prop(self , "new_project_tags")
         
         if context.scene.FilesEnum == ADD_NEW_FILE:
             row = layout.row()
@@ -305,39 +315,51 @@ class PushDialogOperator(bpy.types.Operator):
             
             
     def execute(self, context):
-        
-        def upload():
-            a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
-        
-        self.report({'INFO'}, self.commit_message)
-        
         a = ShapDoAPI(settings["API"])
         
-        print(context.scene.FilesEnum == ADD_NEW_FILE)
-        if context.scene.FilesEnum == ADD_NEW_FILE:
-            newFileName = self.new_file_path + ".blend"
+        if context.scene.ProjectEnum == CREATE_NEW_PROJECT:
             
-            if newFileName not in files:
-                #uploading new file
-                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-                a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
-                
-                setFiles(context)
-                context.scene.FilesEnum = newFileName
-                upload()
-            else:
-                #Error file already exists
-                bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
-                                      message="File already exists in project, please provide another.")
-            
+            self.report({'INFO'}, "Creating new project")
+            bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+            print(a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, self.new_file_path.split(".blend")[0] + ".blend", self.new_project_description,
+                              "", self.new_project_category, self.new_project_license, 
+                               self.new_project_name, self.new_project_tags, self.new_project_private))
+        
+        
+        #uploading to existing file or new file
         else:
-            if not working_on_stl:
-                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-            else:
-                bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
-            print(self.commit_message)
+            def upload():
+                a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
             
-            upload()
+            self.report({'INFO'}, self.commit_message)
+            
+            print(context.scene.FilesEnum == ADD_NEW_FILE)
+            if context.scene.FilesEnum == ADD_NEW_FILE:
+                
+                newFileName = self.new_file_path + ".blend"
+                
+                if newFileName not in files:
+                    #uploading new file
+                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                    a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+                    
+                    setFiles(context)
+                    context.scene.FilesEnum = newFileName
+                    upload()
+                else:
+                    #Error file already exists
+                    bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
+                                        message="File already exists in project, please provide another.")
+            
+            #uploading to existing file    
+            else:
+                if not working_on_stl:
+                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                else:
+                    bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
+                print(self.commit_message)
+                
+                upload()
         return {'FINISHED'}
  
     def invoke(self, context, event):

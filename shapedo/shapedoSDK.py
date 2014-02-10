@@ -34,6 +34,8 @@ class ShapDoAPI():
         reply = json.loads(data)
         if reply["success"]:
             return reply["result"]
+        else:
+            return reply
     
     def getProjectInfo(self, projectName):
         """
@@ -65,6 +67,33 @@ class ShapDoAPI():
             "file": base64.encodestring(open(fileData, 'rb').read()).decode(),
             "filename": filename,
             "message": message
+            }
+        )
+    
+    def createNewProject(self, projectTitle, localPath, remotePath, projectDescription = "", projectInstructions = "", projectCategory = "", projectLicense = "cc-sa", 
+                         projectName = "", projectTags = "", private = False):
+        """
+        Create a new project
+        
+        :param projectTitle: the project title
+        :param localPath: the path to the file we are going to upload
+        :param remotePath: The path of the file on shapedo
+        :param projectDescription: description of the project
+        :param projectCategory: Category as listed on ShapeDo API
+        :param projectLicense: Licnese from the ones listed on ShapeDo
+        """
+        
+        return self._post("create", {
+            "name": projectName.replace(" ","-"),
+            "title" : projectTitle,
+            "file": base64.encodestring(open(localPath, 'rb').read()).decode(),
+            "filename": remotePath,
+            "description": projectDescription,
+            "instructions" : projectInstructions,
+            "category" : projectCategory,
+            "license" : projectLicense,
+            "tags" : projectTags,
+            "private" : private
             }
         )
     

@@ -339,39 +339,35 @@ class PushDialogOperator(bpy.types.Operator):
             context.scene.FilesEnum = newFilePath
         
         
-        #uploading to existing file or new file
-        else:
-            def upload():
-                a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
+        #uploading new file to existing project
+        elif context.scene.FilesEnum == ADD_NEW_FILE:
+            self.report({'INFO'}, self.commit_message)
+                
+            newFileName = self.new_file_path + ".blend"
             
+            if newFileName not in files:
+                #uploading new file
+                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+                
+                setFiles(context)
+                context.scene.FilesEnum = newFileName
+            else:
+                #Error file already exists
+                bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
+                                    message="File already exists in project, please provide another.")
+            
+        #uploading to existing file    
+        else:
             self.report({'INFO'}, self.commit_message)
             
-            print(context.scene.FilesEnum == ADD_NEW_FILE)
-            if context.scene.FilesEnum == ADD_NEW_FILE:
-                
-                newFileName = self.new_file_path + ".blend"
-                
-                if newFileName not in files:
-                    #uploading new file
-                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-                    a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
-                    
-                    setFiles(context)
-                    context.scene.FilesEnum = newFileName
-                else:
-                    #Error file already exists
-                    bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
-                                        message="File already exists in project, please provide another.")
-            
-            #uploading to existing file    
+            if not working_on_stl:
+                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
             else:
-                if not working_on_stl:
-                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-                else:
-                    bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
-                print(self.commit_message)
-                
-                upload()
+                bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
+            print(self.commit_message)
+            
+            a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
         return {'FINISHED'}
  
     def invoke(self, context, event):

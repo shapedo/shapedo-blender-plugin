@@ -465,6 +465,49 @@ class MessageOperator(bpy.types.Operator):
         row.alignment = 'EXPAND'
         row.prop(self, "message")
 
+class ShapeDoAddonPreferences(bpy.types.AddonPreferences):
+    # this must match the addon name, use '__package__'
+    # when defining this in a submodule of a python package.
+    bl_idname = __name__
+    
+    '''
+    #TODO: Make this point to the blend workspace path
+    filepath = StringProperty(
+            name="Example File Path",
+            subtype='FILE_PATH',
+            )
+    '''
+    api_key = StringProperty()
+    
+    def invoke(self, context, event):
+        self.api_key = "wee"
+        
+    def draw(self, context):
+        
+        layout = self.layout
+        layout.label(text="Here you can set shapedo addon settings")
+        layout.prop(self, "api_key")
+        
+
+'''
+class OBJECT_OT_addon_prefs_shapedo(bpy.types.Operator):
+    """Display preferences"""
+    bl_idname = "object.addon_prefs_example"
+    bl_label = "Addon Preferences Example"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        user_preferences = context.user_preferences
+        addon_prefs = user_preferences.addons[__name__].preferences
+
+        info = ("Path: %s, Number: %d, Boolean %r" %
+                (addon_prefs.filepath, addon_prefs.number, addon_prefs.boolean))
+
+        self.report({'INFO'}, info)
+        print(info)
+
+        return {'FINISHED'}
+'''
 
 def register():
     """Plugin registration, they all have to do that"""

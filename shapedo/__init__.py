@@ -36,7 +36,8 @@ settings = {
     "ProjectEnum" : [],
     "FilesEnum" : [],
     "CurrentProject" : "",
-    "CurrentFile" : ""}
+    "CurrentFile" : "",
+    "Username" : "" }
 
 #Holds the lists for the Enums
 projects = []
@@ -69,7 +70,7 @@ def load_settings():
     except:
         return
     try:
-        settings = json.loads(file.readline())
+        settings.update(json.loads(file.readline()))
     except:
         return
     file.close()
@@ -201,6 +202,8 @@ class ToolPropsPanel(bpy.types.Panel):
         self.layout.prop(context.scene, 'FilesEnum')
         self.layout.operator("shapedo.download", text="Download")
         self.layout.operator("shapedo.upload", text="Upload")
+        props = self.layout.operator("wm.url_open", text="Open Project Page", icon='WORLD_DATA')
+        props.url = "http://shapedo.com/" + settings["Username"] + "/" + settings["CurrentProject"]
         self.layout.operator("settings.refresh", text="Update project list")
         self.layout.operator("settings.dialog", text="Settings")
        
@@ -417,10 +420,11 @@ class SettingsDialogOperator(bpy.types.Operator):
                     message="Authentication failed, check your username and password")
                 else:
                     settings["API"] = reply["apiKey"]
-                
-                save_settings()
-                setProjects()
-                setFiles(context)
+                    settings["Username"] = self.settings_username
+                    save_settings()
+                    setProjects()
+                    setFiles(context)
+                    
             except:
                 bpy.ops.error.message('INVOKE_DEFAULT', 
                 MessageType="Error",

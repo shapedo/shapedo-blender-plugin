@@ -9,7 +9,7 @@ import base64
 class ShapDoAPI():
     """ShapeDo API handler class"""
     
-    def __init__(self, token, host="https://shapedo.com/api/v1/"):
+    def __init__(self, token = "", host="https://shapedo.com/api/v1/"):
         """
         Constructor
         
@@ -19,20 +19,24 @@ class ShapDoAPI():
         self.token = token
         self.host = host
 
-    def _post(self, url, paramDict={}):
+    def _post(self, url, paramDict={}, token = False):
         """
         Internal funciton to send the post requests
         
         :param url: the url to access
         :param paramDict: A dict of the parameters to pass
         """
-        extraItems = {"token": self.token}
+        if not token:
+            extraItems = {"token": self.token}
+        else:
+            extraItems = {}
+            
         params = urllib.parse.urlencode(dict(paramDict.items() | extraItems.items())).encode('UTF-8')
         f = urllib.request.urlopen(self.host + url, params)
         
         data = str(f.read().decode('latin-1'))
         reply = json.loads(data)
-        if reply["success"]:
+        if reply["success"] and not token:
             return reply["result"]
         else:
             return reply
@@ -108,3 +112,17 @@ class ShapDoAPI():
         downloadPath = response['files'][filePath]
         with urllib.request.urlopen(urllib.parse.quote(downloadPath, safe='/:?=')) as response, open(savePath, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
+        return
+    
+    def getToken(self, username, password):
+        """
+        Get API token
+        
+        :param username: The username
+        :param passwordL The password
+        :return: The API token response, token should be in "apiKey" key
+        """
+        return self._post("api-key", {
+            "username": username,
+            "password": password
+            }, True)

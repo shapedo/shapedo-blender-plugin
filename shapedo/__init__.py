@@ -371,27 +371,47 @@ class PushDialogOperator(bpy.types.Operator):
         return {'FINISHED'}
  
     def invoke(self, context, event):
-        self.my_string = settings["API"]
+        self.settings_token = settings["API"]
         return context.window_manager.invoke_props_dialog(self, width=450, height=300)
- 
+
  
 class SettingsDialogOperator(bpy.types.Operator):
     """Settings dialog"""
     bl_idname = "object.settings_dialog_operator"
     bl_label = "ShapeDo connection settings"
  
-    my_string = StringProperty(name="API Key")
+    settings_username = StringProperty(name="Username")
+    settings_password = StringProperty(name="Password", subtype="PASSWORD")
  
     def execute(self, context):
         global settings
         
         self.report({'INFO'}, str(settings))
         
-        settings["API"] = "%s" % (self.my_string.strip())
+        a = ShapDoAPI()
         
-        save_settings()
-        setProjects()
-        setFiles(context)
+        self.settings_username = self.settings_username.strip()
+        self.settings_password = self.settings_password.strip()
+        
+        if self.settings_username != "" and self.settings_password != 0:
+            reply = a.getToken(self.settings_username, self.settings_password)
+            print(reply)
+            
+            try:
+                if not reply["success"]:
+                    bpy.ops.error.message('INVOKE_DEFAULT', 
+                    MessageType="Error",
+                    message="")
+                else:
+                    settings["API"] = reply["apiKey"]
+                
+                save_settings()
+                setProjects()
+                setFiles(context)
+            except:
+                bpy.ops.error.message('INVOKE_DEFAULT', 
+                MessageType="Error",
+                message="Could not connect to server, check your internet connection")
         return {'FINISHED'}
     
     def draw(self, context):
@@ -400,17 +420,24 @@ class SettingsDialogOperator(bpy.types.Operator):
  
         row = layout.row()
         row.alignment = 'EXPAND'
+       
         
-        split = row.split(percentage=0.75)
-        col = split.column() 
-        col.prop(self , "my_string")
-        col = split.column()
-
-        props = col.operator("wm.url_open", text="Get API key", icon='WORLD_DATA')
-        props.url = "http://shapedo.com/user"
+        row = layout.row()
+        row.prop(self , "settings_username")
+        row = layout.row()
+        row.prop(self , "settings_password")
+        row = layout.row()
+        split = row.split(percentage=0.25)
+        props = split.operator("wm.url_open", text="Sign Up", icon='WORLD_DATA')
+        props.url = "http://shapedo.com/user/login"
+        
+        
+        row = layout.row()
+        row.alignment = 'CENTER'
+        row.label("API: " + settings["API"])
     
     def invoke(self, context, event):
-        self.my_string = settings["API"]
+        self.settings_token = settings["API"]
         return context.window_manager.invoke_props_dialog(self, width=450, height=300)
 
 

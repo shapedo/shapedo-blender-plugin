@@ -201,6 +201,7 @@ class ToolPropsPanel(bpy.types.Panel):
         self.layout.prop(context.scene, 'FilesEnum')
         self.layout.operator("shapedo.download", text="Download")
         self.layout.operator("shapedo.upload", text="Upload")
+        self.layout.operator("settings.refresh", text="Update project list")
         self.layout.operator("settings.dialog", text="Settings")
        
  
@@ -212,9 +213,21 @@ class OBJECT_OT_SettingsButton(bpy.types.Operator):
     def execute(self, context):
         # Invoke the dialog
         bpy.ops.object.settings_dialog_operator('INVOKE_DEFAULT')
-        return {'FINISHED'}    
-    
+        return {'FINISHED'}
 
+class OBJECT_OT_SettingsButton(bpy.types.Operator):
+    """ Open the settings dialog"""
+    bl_idname = "settings.refresh"
+    bl_label = "Refresh Project List"
+    
+    def execute(self, context):
+        # Invoke the dialog
+        setProjects()
+        context.scene.ProjectEnum = settings["CurrentProject"]
+        setFiles(context)
+        context.scene.FilesEnum = settings["CurrentFile"]
+        return {'FINISHED'}
+    
 class OBJECT_OT_PullButton(bpy.types.Operator):
     bl_idname = "shapedo.download"
     bl_label = "Say Hello"
@@ -401,7 +414,7 @@ class SettingsDialogOperator(bpy.types.Operator):
                 if not reply["success"]:
                     bpy.ops.error.message('INVOKE_DEFAULT', 
                     MessageType="Error",
-                    message="")
+                    message="Authentication failed, check your username and password")
                 else:
                     settings["API"] = reply["apiKey"]
                 

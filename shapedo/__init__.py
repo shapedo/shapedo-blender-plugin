@@ -198,14 +198,22 @@ class ToolPropsPanel(bpy.types.Panel):
 
     def draw(self, context):
         global itemsPath
-        self.layout.prop(context.scene, 'ProjectEnum')
-        self.layout.prop(context.scene, 'FilesEnum')
-        self.layout.operator("shapedo.download", text="Download")
-        self.layout.operator("shapedo.upload", text="Upload")
-        props = self.layout.operator("wm.url_open", text="Open Project Page", icon='WORLD_DATA')
+        
+        mainCol = self.layout.column()
+        
+        mainCol.prop(context.scene, 'ProjectEnum')
+        mainCol.prop(context.scene, 'FilesEnum')
+        mainCol.operator("shapedo.download", text="Download")
+        mainCol.operator("shapedo.upload", text="Upload")
+        props = mainCol.operator("wm.url_open", text="Open Project Page", icon='WORLD_DATA')
         props.url = "http://shapedo.com/" + settings["Username"] + "/" + settings["CurrentProject"]
-        self.layout.operator("settings.refresh", text="Update project list")
-        self.layout.operator("settings.dialog", text="Settings")
+        mainCol.operator("settings.refresh", text="Update project list")
+        settingsCol = self.layout.column()
+        settingsCol.operator("settings.dialog", text="Settings")
+        
+        #draw logic
+        mainCol.enabled = "API" in settings and settings["API"] != ""
+                
        
  
 class OBJECT_OT_SettingsButton(bpy.types.Operator):

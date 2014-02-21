@@ -110,7 +110,7 @@ class ShapDoAPI():
         """
         response = self.getProjectInfo(projectName)
         downloadPath = response['files'][filePath]
-        with urllib.request.urlopen(urllib.parse.quote(downloadPath, safe='/:?=')) as response, open(savePath, 'wb') as out_file:
+        with urllib.request.urlopen(urllib.parse.quote(downloadPath, safe='&/:?=')) as response, open(savePath, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
         return
     

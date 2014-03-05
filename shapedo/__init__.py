@@ -492,6 +492,9 @@ class UploadShapeDo(bpy.types.Operator):
             if not working_on_stl:
                 bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
             else:
+                # select all objects
+                for object in bpy.data.objects:
+                    object.select = True
                 bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
             print(self.commit_message)
             

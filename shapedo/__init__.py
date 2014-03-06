@@ -125,8 +125,8 @@ def setProjects():
     projects = []
     a = ShapDoAPI(settings["API"])
     try:
-        projectsDict = a.getProjectsList()["projects"]
-    except urllib.error.HTTPError:
+        projectsDict = a.getProjectsList()["result"]["projects"]
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
         bpy.ops.error.message('INVOKE_DEFAULT', 
             MessageType="Error",
             message="Could not connect to server, check your API key")
@@ -162,10 +162,16 @@ def setFiles(context,dummy=False):
         a = ShapDoAPI(settings["API"])
         print("project:")
         print(str(context.scene.ProjectEnum))
-        try:
-            filesDict = a.getProjectInfo(str(context.scene.ProjectEnum))["files"]
-        except:
-            return
+        
+        reply =  a.getProjectInfo(str(context.scene.ProjectEnum))
+        print(reply)
+        #if not reply["success"]:
+        #    bpy.ops.error.message('INVOKE_DEFAULT',
+        #                          MessageType = "Error",
+        #                          message = reply["error"])
+        #    return
+        filesDict = reply["result"]["files"]
+        
         for key in filesDict:
             if key.split(".")[-1] in ACCEPTED_FILETYPES:
                 files2.append((key, key, filesDict[key]))
@@ -233,10 +239,15 @@ class OBJECT_OT_SettingsButton(bpy.types.Operator):
     
     def execute(self, context):
         # Invoke the dialog
-        setProjects()
-        context.scene.ProjectEnum = settings["CurrentProject"]
-        setFiles(context)
-        context.scene.FilesEnum = settings["CurrentFile"]
+        try:
+            setProjects()
+            context.scene.ProjectEnum = settings["CurrentProject"]
+            setFiles(context)
+            context.scene.FilesEnum = settings["CurrentFile"]
+        except Exception as e:
+            bpy.ops.error.message('INVOKE_DEFAULT',
+                                  MessageType = "Error",
+                                  message = "Can't connect to server: " + str(e))
         return {'FINISHED'}
     
 class OBJECT_OT_PullButton(bpy.types.Operator):
@@ -252,27 +263,39 @@ class OBJECT_OT_PullButton(bpy.types.Operator):
         save_settings()
         
         a = ShapDoAPI(settings["API"])
-        a.downloadProject(settings["CurrentProject"], settings["CurrentFile"], BLEND_SAVE_PATH)
-        
         try:
-            bpy.ops.wm.open_mainfile(filepath=BLEND_SAVE_PATH)
-            working_on_stl = False
-        except RuntimeError:
+            reply = a.downloadProject(settings["CurrentProject"], settings["CurrentFile"], BLEND_SAVE_PATH)
             
-            bpy.ops.wm.read_homefile()
-            bpy.ops.object.delete()
+            print(reply)
+            if not reply["success"]:
+                bpy.ops.error.message('INVOKE_DEFAULT',
+                                    MessageType = "Error",
+                                    message = reply["error"])
+                return{'FINISHED'}
             
-            for item in bpy.data.objects:
-                try:
-                    bpy.context.scene.objects.unlink(item)
-                    bpy.data.objects.remove(item)
-                except:
-                    pass
+            try:
+                bpy.ops.wm.open_mainfile(filepath=BLEND_SAVE_PATH)
+                working_on_stl = False
+            except RuntimeError:
                 
-            bpy.ops.import_mesh.stl(filepath=BLEND_SAVE_PATH)
-            working_on_stl = True
-        
-        setWorkingProject(context)
+                bpy.ops.wm.read_homefile()
+                bpy.ops.object.delete()
+                
+                for item in bpy.data.objects:
+                    try:
+                        bpy.context.scene.objects.unlink(item)
+                        bpy.data.objects.remove(item)
+                    except:
+                        pass
+                    
+                bpy.ops.import_mesh.stl(filepath=BLEND_SAVE_PATH)
+                working_on_stl = True
+            
+            setWorkingProject(context)
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            bpy.ops.error.message('INVOKE_DEFAULT',
+                                  MessageType="Error",
+                                  message="Download error: " + str(e))
         return{'FINISHED'}    
 
 
@@ -372,25 +395,24 @@ class SettingsDialogOperator(bpy.types.Operator):
         self.settings_password = self.settings_password.strip()
         
         if self.settings_username != "" and self.settings_password != 0:
-            reply = a.getToken(self.settings_username, self.settings_password)
-            print(reply)
             
             try:
+                reply = a.getToken(self.settings_username, self.settings_password)
                 if not reply["success"]:
                     bpy.ops.error.message('INVOKE_DEFAULT', 
                     MessageType="Error",
                     message="Authentication failed, check your username and password")
                 else:
-                    settings["API"] = reply["apiKey"]
+                    settings["API"] = reply["result"]["apiKey"]
                     settings["Username"] = self.settings_username
                     save_settings()
                     setProjects()
                     setFiles(context)
                     
-            except:
+            except Exception as e:
                 bpy.ops.error.message('INVOKE_DEFAULT', 
                 MessageType="Error",
-                message="Could not connect to server, check your internet connection")
+                message="Could not connect to server, check your internet connection: " + str(e))
         return {'FINISHED'}
     
     def draw(self, context):
@@ -440,66 +462,82 @@ class UploadShapeDo(bpy.types.Operator):
     _thread = None
     
     def modal(self, context, event):
-        
-        a = ShapDoAPI(settings["API"])
-        
-        if context.scene.ProjectEnum == CREATE_NEW_PROJECT:
+        try:
+            a = ShapDoAPI(settings["API"])
             
-            self.report({'INFO'}, "Creating new project")
-            bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-            newFilePath = self.new_file_path.split(".blend")[0] + ".blend"
-            result = a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, newFilePath, self.new_project_description,
-                              "", self.new_project_category, self.new_project_license, 
-                               self.new_project_tags, self.new_project_private)
-            
-            
-            #Make enums include new project, and set it to the current project
-            newProjectName = result['url'].split("/")[-1]
-            
-            settings["CurrentProject"] = newProjectName
-            settings["CurrentFile"] = newFilePath
-            save_settings()
-            
-            setProjects()
-            setFiles(context)
-            
-            context.scene.ProjectEnum = newProjectName
-            context.scene.FilesEnum = newFilePath
-        
-        #uploading new file to existing project
-        elif context.scene.FilesEnum == ADD_NEW_FILE:
-            self.report({'INFO'}, self.commit_message)
+            if context.scene.ProjectEnum == CREATE_NEW_PROJECT:
                 
-            newFileName = self.new_file_path + ".blend"
-            
-            if newFileName not in files:
-                #uploading new file
+                self.report({'INFO'}, "Creating new project")
                 bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-                a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+                newFilePath = self.new_file_path.split(".blend")[0] + ".blend"
+                reply = a.createNewProject(self.new_project_title, BLEND_SAVE_PATH, newFilePath, self.new_project_description,
+                                "", self.new_project_category, self.new_project_license, 
+                                self.new_project_tags, self.new_project_private)
+                if not reply["success"]:
+                    bpy.ops.error.message('INVOKE_DEFAULT',
+                                        MessageType = "Error",
+                                        message = reply["error"])
+                return{'FINISHED'}
                 
+                
+                #Make enums include new project, and set it to the current project
+                newProjectName = reply["result"]['url'].split("/")[-1]
+                
+                settings["CurrentProject"] = newProjectName
+                settings["CurrentFile"] = newFilePath
+                save_settings()
+                
+                setProjects()
                 setFiles(context)
-                context.scene.FilesEnum = newFileName
+                
+                context.scene.ProjectEnum = newProjectName
+                context.scene.FilesEnum = newFilePath
+            
+            #uploading new file to existing project
+            elif context.scene.FilesEnum == ADD_NEW_FILE:
+                self.report({'INFO'}, self.commit_message)
+                    
+                newFileName = self.new_file_path + ".blend"
+                
+                if newFileName not in files:
+                    #uploading new file
+                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                    reply = a.uploadFile(context.scene.ProjectEnum, newFileName, self.commit_message, BLEND_SAVE_PATH)
+                    if not reply["success"]:
+                        bpy.ops.error.message('INVOKE_DEFAULT',
+                                            MessageType = "Error",
+                                            message = reply["error"])
+                    
+                    setFiles(context)
+                    context.scene.FilesEnum = newFileName
+                else:
+                    #Error file already exists
+                    bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
+                                        message = "File already exists in project, please provide another.")
+                
+            #uploading to existing file    
             else:
-                #Error file already exists
-                bpy.ops.error.message('INVOKE_DEFAULT', MessageType="Error", 
-                                    message="File already exists in project, please provide another.")
-            
-        #uploading to existing file    
-        else:
-            self.report({'INFO'}, self.commit_message)
-            print("updating existing")
-            
-            if not working_on_stl:
-                bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
-            else:
-                # select all objects
-                for object in bpy.data.objects:
-                    object.select = True
-                bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
-            print(self.commit_message)
-            
-            print(a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH))         
-            
+                self.report({'INFO'}, self.commit_message)
+                print("updating existing")
+                
+                if not working_on_stl:
+                    bpy.ops.wm.save_mainfile(filepath=BLEND_SAVE_PATH)
+                else:
+                    # select all objects
+                    for object in bpy.data.objects:
+                        object.select = True
+                    bpy.ops.export_mesh.stl(filepath=BLEND_SAVE_PATH)
+                print(self.commit_message)
+                
+                reply = a.uploadFile(context.scene.ProjectEnum, context.scene.FilesEnum, self.commit_message, BLEND_SAVE_PATH)
+                if not reply["success"]:
+                    bpy.ops.error.message('INVOKE_DEFAULT',
+                                        MessageType = "Error",
+                                        message = reply["error"])
+        except urllib.error.URLError as e:
+            bpy.ops.error.message('INVOKE_DEFAULT',
+                                  MessageType = "Error",
+                                  message = "Connection to ShapeDo failed: " + str(e))
         return {'FINISHED'}
     
     def execute(self, context):
@@ -521,7 +559,7 @@ class MessageOperator(bpy.types.Operator):
  
     def execute(self, context):
         self.report({'INFO'}, self.message)
-        print(self.message)
+        print("ShapeDo addon Error:" + str(self.message))
         return {'FINISHED'}
  
     def invoke(self, context, event):

@@ -36,10 +36,7 @@ class ShapDoAPI():
         
         data = str(f.read().decode('latin-1'))
         reply = json.loads(data)
-        if reply["success"] and not token:
-            return reply["result"]
-        else:
-            return reply
+        return reply
     
     def getProjectInfo(self, projectName):
         """
@@ -108,11 +105,12 @@ class ShapDoAPI():
         :param filePath: File path within the project tree
         :param savePath: The path where to save the file
         """
-        response = self.getProjectInfo(projectName)
-        downloadPath = response['files'][filePath]
+        reply = self.getProjectInfo(projectName)
+        print(reply)
+        downloadPath = reply["result"]['files'][filePath]
         with urllib.request.urlopen(urllib.parse.quote(downloadPath, safe='&/:?=')) as response, open(savePath, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
-        return
+        return reply
     
     def getToken(self, username, password):
         """

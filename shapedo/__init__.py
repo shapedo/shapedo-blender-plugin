@@ -1,7 +1,7 @@
 bl_info = {
     "name" : "ShapeDo",
     "author" : "Guy Sheffer",
-    "version" : (0, 0, 2),
+    "version" : (0, 3, 0),
     "blender" : (2, 68, 0),
     "category" : "Tools",
     "location" : "3D View > Tools",

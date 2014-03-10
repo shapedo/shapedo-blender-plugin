@@ -1,4 +1,4 @@
-shapedo-blender-plugin
+ShapeDo Blender Plugin
 ======================
 
 An addon to work on projects on ShapeDo from within Blender

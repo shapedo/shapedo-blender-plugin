@@ -558,12 +558,11 @@ class MessageOperator(bpy.types.Operator):
     message = StringProperty()
  
     def execute(self, context):
-        self.report({'INFO'}, self.message)
-        print("ShapeDo addon Error:" + str(self.message))
         return {'FINISHED'}
  
     def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=600, height=200)
+        self.report({'WARNING'}, self.message)
+        return context.window_manager.invoke_props_dialog(self, width=600, height=200)
  
     def draw(self, context):
         self.layout.label(self.MessageType)
